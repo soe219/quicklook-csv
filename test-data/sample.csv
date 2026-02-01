@@ -1,0 +1,11 @@
+Name,Age,City,Salary,Active,Join Date
+John Smith,32,New York,75000.50,true,2020-01-15
+Jane Doe,28,Los Angeles,82000.00,true,2019-06-22
+Bob Wilson,45,Chicago,95000.75,false,2018-03-10
+Alice Brown,35,Seattle,88000.25,true,2021-09-01
+Charlie Davis,29,Boston,67500.00,true,2022-02-28
+Eva Martinez,41,Miami,92000.00,false,2017-11-30
+Frank Lee,38,Denver,78500.50,true,2020-07-14
+Grace Kim,26,Portland,71000.00,true,2023-01-05
+Henry Chen,52,San Francisco,125000.00,true,2015-04-20
+Ivy Johnson,33,Austin,83000.75,true,2019-08-12

@@ -21,8 +21,6 @@ xcuserdata/
 
 # Build artifacts
 *.app
-*.dmg
-*.zip
 *.ipa
 
 # CocoaPods

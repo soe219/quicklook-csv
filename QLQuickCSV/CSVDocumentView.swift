@@ -200,7 +200,45 @@ struct CSVWebView: NSViewRepresentable {
         }
 
         func refresh() {
-            webView?.reload()
+            // Re-read file from disk and regenerate HTML
+            guard let fileURL = parent.fileURL else {
+                webView?.reload()
+                return
+            }
+
+            do {
+                let content = try String(contentsOf: fileURL, encoding: .utf8)
+                let data = CSVParser.parse(content, maxRows: Settings.shared.maxDisplayRows)
+
+                // Get file attributes
+                let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path)
+                let fileSize = attributes?[.size] as? Int64
+                let modificationDate = attributes?[.modificationDate] as? Date
+
+                // Get GitHub URL if available
+                var githubURL: String? = nil
+                if let gitInfo = GitHelper.getGitInfo(for: fileURL.path) {
+                    githubURL = gitInfo.githubURL
+                }
+
+                // Generate fresh HTML
+                let html = HTMLGenerator.generate(
+                    data: data,
+                    fileName: fileURL.lastPathComponent,
+                    filePath: fileURL.path,
+                    fileSize: fileSize,
+                    modificationDate: modificationDate,
+                    githubURL: githubURL,
+                    rawContent: content,
+                    maxDisplayRows: Settings.shared.maxDisplayRows
+                )
+
+                let baseURL = fileURL.deletingLastPathComponent()
+                webView?.loadHTMLString(html, baseURL: baseURL)
+            } catch {
+                // Fallback to simple reload if file read fails
+                webView?.reload()
+            }
         }
     }
 }

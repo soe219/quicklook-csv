@@ -68,10 +68,77 @@ enum HTMLGenerator {
         \(generateFilterBar())
             </div>
             <script>
+        \(generateMarkdownRenderer())
+            </script>
+            <script>
         \(generateJavaScript(data: data, stats: stats))
             </script>
         </body>
         </html>
+        """
+    }
+
+    // MARK: - Markdown Renderer (Minimal Table Parser)
+
+    private static func generateMarkdownRenderer() -> String {
+        // Minimal markdown table renderer for CSV data
+        // Parses markdown table format and converts to HTML
+        return """
+        function renderMarkdownTable(markdown) {
+            const lines = markdown.trim().split('\\n');
+            if (lines.length < 2) return '<p>' + markdown + '</p>';
+
+            // Find table start
+            let tableStart = -1;
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].trim().startsWith('|')) {
+                    tableStart = i;
+                    break;
+                }
+            }
+            if (tableStart === -1) return '<pre>' + markdown + '</pre>';
+
+            // Parse header
+            const headerLine = lines[tableStart];
+            const headers = headerLine.split('|').filter(c => c.trim()).map(c => c.trim());
+
+            // Skip separator line (line with dashes)
+            const dataStart = tableStart + 2;
+            if (dataStart >= lines.length) {
+                return '<table><thead><tr>' + headers.map(h => '<th>' + escapeHtml(h) + '</th>').join('') + '</tr></thead></table>';
+            }
+
+            // Parse data rows
+            const rows = [];
+            for (let i = dataStart; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line || !line.startsWith('|')) continue;
+                const cells = line.split('|').filter(c => c !== '').map(c => c.trim());
+                if (cells.length > 0) rows.push(cells);
+            }
+
+            // Build HTML table
+            let html = '<table>';
+            html += '<thead><tr>' + headers.map(h => '<th>' + escapeHtml(h) + '</th>').join('') + '</tr></thead>';
+            html += '<tbody>';
+            rows.forEach(row => {
+                html += '<tr>';
+                for (let i = 0; i < headers.length; i++) {
+                    const cell = row[i] || '';
+                    html += '<td>' + escapeHtml(cell) + '</td>';
+                }
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+
+            return html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
         """
     }
 
@@ -497,8 +564,29 @@ enum HTMLGenerator {
             display: block;
         }
 
-        /* Markdown view */
-        .markdown-view {
+        /* Markdown view container */
+        .markdown-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .markdown-toggle {
+            display: flex;
+            gap: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid \(theme.border);
+        }
+
+        .markdown-toggle .btn.active {
+            background: \(theme.linkColor);
+            color: #ffffff;
+            border-color: \(theme.linkColor);
+        }
+
+        /* Markdown source view */
+        .markdown-source {
+            display: none;
             padding: 16px;
             background: \(theme.secondaryBackground);
             border: 1px solid \(theme.border);
@@ -507,6 +595,81 @@ enum HTMLGenerator {
             font-size: 12px;
             overflow-x: auto;
             white-space: pre;
+        }
+
+        .markdown-source.active {
+            display: block;
+        }
+
+        /* Markdown rendered view */
+        .markdown-rendered {
+            display: none;
+            padding: 16px;
+            background: \(theme.secondaryBackground);
+            border: 1px solid \(theme.border);
+            border-radius: 8px;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+
+        .markdown-rendered.active {
+            display: block;
+        }
+
+        /* Rendered markdown table styles */
+        .markdown-rendered table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+
+        .markdown-rendered th,
+        .markdown-rendered td {
+            padding: 10px 14px;
+            text-align: left;
+            border: 1px solid \(theme.border);
+        }
+
+        .markdown-rendered th {
+            background: \(theme.headerBackground);
+            font-weight: 600;
+        }
+
+        .markdown-rendered tr:nth-child(even) td {
+            background: \(theme.background);
+        }
+
+        .markdown-rendered tr:nth-child(odd) td {
+            background: \(theme.secondaryBackground);
+        }
+
+        .markdown-rendered h1, .markdown-rendered h2, .markdown-rendered h3 {
+            margin: 0 0 12px 0;
+            color: \(theme.text);
+        }
+
+        .markdown-rendered p {
+            margin: 8px 0;
+        }
+
+        .markdown-rendered code {
+            background: \(theme.headerBackground);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Menlo, monospace;
+            font-size: 12px;
+        }
+
+        .markdown-rendered pre {
+            background: \(theme.headerBackground);
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+
+        .markdown-rendered pre code {
+            background: none;
+            padding: 0;
         }
 
         /* JSON view */
@@ -768,10 +931,29 @@ enum HTMLGenerator {
     private static func generateMarkdownView(data: CSVData, displayRows: [[String]]) -> String {
         let markdown = data.toMarkdown(maxRows: min(displayRows.count, 500))
 
+        // Escape the markdown for embedding in a script tag (as JSON string)
+        let markdownForJS = markdown
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\n", with: "\\n")
+            .replacingOccurrences(of: "\r", with: "\\r")
+            .replacingOccurrences(of: "\t", with: "\\t")
+
         return """
         <div class="view-container" id="markdownView">
-            <div class="markdown-view" id="markdownContent">\(escapeHTML(markdown))</div>
+            <div class="markdown-container">
+                <div class="markdown-toggle">
+                    <button class="btn active" id="mdRenderedBtn" onclick="switchMarkdownMode('rendered')">📖 Rendered</button>
+                    <button class="btn" id="mdSourceBtn" onclick="switchMarkdownMode('source')">📝 Source</button>
+                    <button class="btn" onclick="copyMarkdown()">📋 Copy</button>
+                </div>
+                <div class="markdown-rendered active" id="markdownRendered">
+                    <!-- Rendered content inserted by JavaScript -->
+                </div>
+                <div class="markdown-source" id="markdownSource">\(escapeHTML(markdown))</div>
+            </div>
         </div>
+        <script id="markdownData" type="application/json">"\(markdownForJS)"</script>
         """
     }
 
@@ -1138,6 +1320,41 @@ enum HTMLGenerator {
                 }, 2000);
             });
         }
+
+        // Markdown mode switching
+        function switchMarkdownMode(mode) {
+            const renderedEl = document.getElementById('markdownRendered');
+            const sourceEl = document.getElementById('markdownSource');
+            const renderedBtn = document.getElementById('mdRenderedBtn');
+            const sourceBtn = document.getElementById('mdSourceBtn');
+
+            if (mode === 'rendered') {
+                renderedEl.classList.add('active');
+                sourceEl.classList.remove('active');
+                renderedBtn.classList.add('active');
+                sourceBtn.classList.remove('active');
+            } else {
+                renderedEl.classList.remove('active');
+                sourceEl.classList.add('active');
+                renderedBtn.classList.remove('active');
+                sourceBtn.classList.add('active');
+            }
+        }
+
+        function copyMarkdown() {
+            const source = document.getElementById('markdownSource').textContent;
+            navigator.clipboard.writeText(source).then(() => showToast('Markdown copied to clipboard'));
+        }
+
+        // Initialize rendered markdown on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const sourceEl = document.getElementById('markdownSource');
+            const renderedEl = document.getElementById('markdownRendered');
+            if (sourceEl && renderedEl) {
+                const markdown = sourceEl.textContent;
+                renderedEl.innerHTML = renderMarkdownTable(markdown);
+            }
+        });
         """
     }
 

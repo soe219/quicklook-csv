@@ -1146,17 +1146,27 @@ enum HTMLGenerator {
         // Serialize stats to JSON for JavaScript
         let statsJSON = serializeStats(stats, headers: data.headers)
 
-        // Serialize all rows for header toggle functionality
-        let allRowsJSON = serializeRows(displayRows)
-        let originalHeadersJSON = serializeArray(data.headers)
+        // For header toggle: we need ALL rows including the first row that may have been used as headers
+        // If hasHeaders was true, the first row was extracted as headers and not included in displayRows
+        // We need to reconstruct the complete dataset for proper toggle functionality
+        let firstRow = data.headers  // The first row (used as headers or generated "Column X")
+        let allRowsIncludingFirst: [[String]]
+        if data.hasHeaders {
+            // First row was used as headers, so prepend it to get complete data
+            allRowsIncludingFirst = [firstRow] + displayRows
+        } else {
+            // First row is already in displayRows (headers are generated "Column X")
+            allRowsIncludingFirst = displayRows
+        }
+
+        let allRowsJSON = serializeRows(allRowsIncludingFirst)
         let hadHeadersInitially = data.hasHeaders
 
         return """
         // Data and state
         const columnStats = \(statsJSON);
         let headers = \(serializeArray(data.headers));
-        const originalHeaders = \(originalHeadersJSON);
-        const allDataRows = \(allRowsJSON);
+        const allRows = \(allRowsJSON);  // All rows including first row
         let hasHeaders = \(hadHeadersInitially ? "true" : "false");
         let selectedColumn = -1;
         let sortColumn = -1;
@@ -1179,17 +1189,18 @@ enum HTMLGenerator {
             let currentHeaders, currentRows;
 
             if (useFirstRowAsHeaders) {
-                currentHeaders = originalHeaders;
-                currentRows = allDataRows;
+                // Use first row as headers, rest as data
+                currentHeaders = allRows[0] || [];
+                currentRows = allRows.slice(1);
             } else {
                 // Generate Column 1, Column 2, etc. headers
-                const colCount = originalHeaders.length;
+                const colCount = allRows[0] ? allRows[0].length : 0;
                 currentHeaders = [];
                 for (let i = 1; i <= colCount; i++) {
                     currentHeaders.push('Column ' + i);
                 }
-                // Include the original headers as the first data row
-                currentRows = [originalHeaders].concat(allDataRows);
+                // All rows become data rows
+                currentRows = allRows;
             }
 
             headers = currentHeaders;
@@ -1198,6 +1209,12 @@ enum HTMLGenerator {
             const thead = document.querySelector('#tableView thead tr');
             if (thead) {
                 thead.replaceChildren();
+                // Add row number header
+                const rowNumTh = document.createElement('th');
+                rowNumTh.className = 'row-number';
+                rowNumTh.textContent = '#';
+                thead.appendChild(rowNumTh);
+                // Add data column headers
                 currentHeaders.forEach((h, i) => {
                     const th = document.createElement('th');
                     th.dataset.col = i;
@@ -1213,9 +1230,17 @@ enum HTMLGenerator {
                 tbody.replaceChildren();
                 currentRows.forEach((row, ri) => {
                     const tr = document.createElement('tr');
+                    tr.dataset.row = ri;
+                    // Add row number cell
+                    const rowNumTd = document.createElement('td');
+                    rowNumTd.className = 'row-number';
+                    rowNumTd.textContent = ri + 1;
+                    tr.appendChild(rowNumTd);
+                    // Add data cells
                     currentHeaders.forEach((_, ci) => {
                         const td = document.createElement('td');
                         td.dataset.col = ci;
+                        td.dataset.value = row[ci] || '';
                         td.textContent = row[ci] || '';
                         tr.appendChild(td);
                     });

@@ -207,7 +207,11 @@ struct CSVWebView: NSViewRepresentable {
             }
 
             do {
-                let content = try String(contentsOf: fileURL, encoding: .utf8)
+                let rawContent = try String(contentsOf: fileURL, encoding: .utf8)
+                // Normalize line endings
+                let content = rawContent
+                    .replacingOccurrences(of: "\r\n", with: "\n")
+                    .replacingOccurrences(of: "\r", with: "\n")
                 let data = CSVParser.parse(content, maxRows: Settings.shared.maxDisplayRows)
 
                 // Get file attributes

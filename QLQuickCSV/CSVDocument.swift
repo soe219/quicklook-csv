@@ -62,8 +62,13 @@ struct CSVDocument: FileDocument {
             throw CocoaError(.fileReadCorruptFile)
         }
 
-        self.rawContent = content
-        self.data = CSVParser.parse(content, maxRows: Settings.shared.maxDisplayRows)
+        // Normalize line endings for consistent display
+        let normalizedContent = content
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+
+        self.rawContent = normalizedContent
+        self.data = CSVParser.parse(normalizedContent, maxRows: Settings.shared.maxDisplayRows)
 
         // File attributes from FileWrapper
         let attributes = configuration.file.fileAttributes

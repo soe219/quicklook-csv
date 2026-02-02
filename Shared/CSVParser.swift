@@ -74,11 +74,16 @@ enum CSVParser {
             )
         }
 
-        // Detect or use provided delimiter
-        let detectedDelimiter = delimiter ?? detectDelimiter(content)
+        // Normalize line endings: convert \r\n and \r to \n
+        let normalizedContent = content
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
 
-        // Parse all rows
-        let allRows = parseRows(content, delimiter: detectedDelimiter, maxRows: maxRows.map { $0 + 1 })
+        // Detect or use provided delimiter
+        let detectedDelimiter = delimiter ?? detectDelimiter(normalizedContent)
+
+        // Parse all rows using normalized content
+        let allRows = parseRows(normalizedContent, delimiter: detectedDelimiter, maxRows: maxRows.map { $0 + 1 })
 
         guard !allRows.isEmpty else {
             return CSVData(

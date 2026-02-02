@@ -498,6 +498,48 @@ enum HTMLGenerator {
             max-width: 300px;
             overflow: hidden;
             text-overflow: ellipsis;
+            cursor: default;
+            position: relative;
+        }
+
+        /* Word wrap mode */
+        table.word-wrap td {
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-width: 400px;
+        }
+
+        /* Expanded cell */
+        td.expanded {
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+            max-width: none !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            background: \(theme.selectedColumn) !important;
+        }
+
+        /* Truncated indicator */
+        td.truncated::after {
+            content: '⋯';
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: \(theme.linkColor);
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        td.truncated:hover::after {
+            opacity: 1;
+        }
+
+        td.truncated {
+            cursor: pointer;
+            padding-right: 20px;
         }
 
         th {
@@ -870,6 +912,8 @@ enum HTMLGenerator {
                     <span>🔍</span>
                     <input type="text" id="searchInput" placeholder="Search... (⌘F)" oninput="handleSearch(this.value)">
                 </div>
+                <button class="btn" id="wrapBtn" onclick="toggleWordWrap()">↩️ Wrap</button>
+                <button class="btn" id="expandAllBtn" onclick="toggleExpandAll()">⬇️ Expand</button>
                 <button class="btn" id="statsBtn" onclick="toggleStatsPanel()">📈 Stats</button>
             </div>
         </div>
@@ -1363,6 +1407,75 @@ enum HTMLGenerator {
                 row.classList.toggle('highlight', match && query.length > 0);
             });
         }
+
+        // Word wrap toggle
+        let wordWrapEnabled = false;
+        function toggleWordWrap() {
+            wordWrapEnabled = !wordWrapEnabled;
+            const table = document.getElementById('dataTable');
+            const btn = document.getElementById('wrapBtn');
+
+            table.classList.toggle('word-wrap', wordWrapEnabled);
+            btn.classList.toggle('active', wordWrapEnabled);
+
+            if (wordWrapEnabled) {
+                showToast('Word wrap enabled');
+            } else {
+                showToast('Word wrap disabled');
+            }
+        }
+
+        // Expand/collapse all cells
+        let allExpanded = false;
+        function toggleExpandAll() {
+            allExpanded = !allExpanded;
+            const cells = document.querySelectorAll('#dataTable td[data-col]');
+            const btn = document.getElementById('expandAllBtn');
+
+            cells.forEach(cell => {
+                if (allExpanded) {
+                    cell.classList.add('expanded');
+                } else {
+                    cell.classList.remove('expanded');
+                }
+            });
+
+            btn.classList.toggle('active', allExpanded);
+            btn.textContent = allExpanded ? '⬆️ Collapse' : '⬇️ Expand';
+
+            if (allExpanded) {
+                showToast('All cells expanded');
+            } else {
+                showToast('All cells collapsed');
+            }
+        }
+
+        // Toggle individual cell expansion
+        function toggleCellExpand(cell) {
+            cell.classList.toggle('expanded');
+        }
+
+        // Mark truncated cells and add click handler
+        function markTruncatedCells() {
+            const cells = document.querySelectorAll('#dataTable td[data-col]');
+            cells.forEach(cell => {
+                // Check if content is truncated
+                if (cell.scrollWidth > cell.clientWidth) {
+                    cell.classList.add('truncated');
+                    cell.addEventListener('click', function(e) {
+                        // Don't toggle if clicking to select column
+                        if (!e.shiftKey) {
+                            toggleCellExpand(this);
+                        }
+                    });
+                }
+            });
+        }
+
+        // Run after DOM is ready
+        document.addEventListener('DOMContentLoaded', markTruncatedCells);
+        // Also run after a slight delay for dynamic content
+        setTimeout(markTruncatedCells, 100);
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {

@@ -93,6 +93,7 @@ struct CSVWebView: NSViewRepresentable {
             fileSize: document.fileSize,
             modificationDate: document.modificationDate,
             githubURL: githubURL,
+            rawContent: document.rawContent,
             maxDisplayRows: Settings.shared.maxDisplayRows
         )
     }

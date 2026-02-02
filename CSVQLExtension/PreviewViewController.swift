@@ -27,6 +27,9 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         // Read the CSV file contents
         let fileURL = request.fileURL
 
+        // Read raw file content for TXT view
+        let rawContent = try? String(contentsOf: fileURL, encoding: .utf8)
+
         // Parse CSV
         guard let csvData = CSVParser.parse(contentsOf: fileURL, maxRows: Settings.shared.maxDisplayRows) else {
             throw NSError(
@@ -52,6 +55,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
             fileSize: fileSize,
             modificationDate: modificationDate,
             githubURL: gitInfo?.githubURL,
+            rawContent: rawContent,
             maxDisplayRows: Settings.shared.maxDisplayRows
         )
 

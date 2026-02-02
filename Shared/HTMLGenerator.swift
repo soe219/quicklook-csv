@@ -33,6 +33,7 @@ enum HTMLGenerator {
         fileSize: Int64? = nil,
         modificationDate: Date? = nil,
         githubURL: String? = nil,
+        rawContent: String? = nil,
         maxDisplayRows: Int = 1000
     ) -> String {
         let isDarkMode = isDarkModeEnabled()
@@ -65,6 +66,7 @@ enum HTMLGenerator {
         \(generateTableView(data: data, displayRows: displayRows, stats: stats))
         \(generateMarkdownView(data: data, displayRows: displayRows))
         \(generateJSONView(data: data, displayRows: displayRows))
+        \(generateTXTView(rawContent: rawContent, data: data))
         \(generateFilterBar())
             </div>
             <script>
@@ -684,6 +686,43 @@ enum HTMLGenerator {
             white-space: pre;
         }
 
+        /* TXT (raw) view */
+        .txt-view {
+            padding: 16px;
+            background: \(theme.secondaryBackground);
+            border: 1px solid \(theme.border);
+            border-radius: 8px;
+            font-family: 'SF Mono', Menlo, monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.6;
+        }
+
+        .txt-view .line {
+            display: block;
+        }
+
+        .txt-view .line-number {
+            display: inline-block;
+            width: 40px;
+            color: \(theme.secondaryText);
+            text-align: right;
+            margin-right: 16px;
+            user-select: none;
+        }
+
+        .txt-view .delimiter {
+            color: \(theme.linkColor);
+        }
+
+        .txt-view .header-line {
+            font-weight: 600;
+            background: \(theme.headerBackground);
+            margin: 0 -16px;
+            padding: 0 16px;
+        }
+
         /* More rows indicator */
         .more-rows {
             padding: 12px;
@@ -823,6 +862,7 @@ enum HTMLGenerator {
                     <button class="btn active" data-view="table" onclick="switchView('table')">Table</button>
                     <button class="btn" data-view="markdown" onclick="switchView('markdown')">Markdown</button>
                     <button class="btn" data-view="json" onclick="switchView('json')">JSON</button>
+                    <button class="btn" data-view="txt" onclick="switchView('txt')">TXT</button>
                 </div>
             </div>
             <div class="toolbar-right">
@@ -967,6 +1007,62 @@ enum HTMLGenerator {
             <div class="json-view" id="jsonContent">\(escapeHTML(json))</div>
         </div>
         """
+    }
+
+    // MARK: - TXT (Raw) View
+
+    private static func generateTXTView(rawContent: String?, data: CSVData) -> String {
+        // If no raw content, reconstruct from data
+        let content: String
+        if let raw = rawContent {
+            content = raw
+        } else {
+            // Reconstruct raw CSV from parsed data
+            let delimiterStr = String(data.delimiter)
+            var lines: [String] = []
+            lines.append(data.headers.map { escapeCSVField($0, delimiter: data.delimiter) }.joined(separator: delimiterStr))
+            for row in data.rows.prefix(1000) {
+                lines.append(row.map { escapeCSVField($0, delimiter: data.delimiter) }.joined(separator: delimiterStr))
+            }
+            content = lines.joined(separator: "\n")
+        }
+
+        // Generate highlighted raw content with line numbers
+        let lines = content.components(separatedBy: .newlines)
+        let delimiterChar = data.delimiter
+        let delimiterEscaped = delimiterChar == "\t" ? "\\t" : escapeHTML(String(delimiterChar))
+
+        var htmlLines: [String] = []
+        for (index, line) in lines.prefix(1000).enumerated() {
+            let lineNum = index + 1
+            let isHeader = index == 0
+            let lineClass = isHeader ? "line header-line" : "line"
+
+            // Highlight delimiters
+            let highlightedLine = escapeHTML(line).replacingOccurrences(
+                of: escapeHTML(String(delimiterChar)),
+                with: "<span class=\"delimiter\">\(delimiterEscaped)</span>"
+            )
+
+            htmlLines.append("<span class=\"\(lineClass)\"><span class=\"line-number\">\(lineNum)</span>\(highlightedLine)</span>")
+        }
+
+        let moreLines = lines.count > 1000 ? "\n<span class=\"line\" style=\"color: var(--secondary-text);\">... (\(lines.count - 1000) more lines)</span>" : ""
+
+        return """
+        <div class="view-container" id="txtView">
+            <div class="txt-view" id="txtContent">\(htmlLines.joined(separator: "\n"))\(moreLines)</div>
+        </div>
+        """
+    }
+
+    private static func escapeCSVField(_ field: String, delimiter: Character) -> String {
+        let needsQuotes = field.contains(delimiter) || field.contains("\"") || field.contains("\n") || field.contains("\r")
+        if needsQuotes {
+            let escaped = field.replacingOccurrences(of: "\"", with: "\"\"")
+            return "\"\(escaped)\""
+        }
+        return field
     }
 
     // MARK: - JavaScript

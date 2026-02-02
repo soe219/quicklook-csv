@@ -86,6 +86,13 @@ struct QLQuickCSVApp: App {
 
             // Window/Tab navigation commands
             CommandGroup(after: .windowArrangement) {
+                Button("Open Files Navigator") {
+                    openWindow(id: "openFiles")
+                }
+                .keyboardShortcut("1", modifiers: [.command, .option])
+
+                Divider()
+
                 Button("Select Next Tab") {
                     NSApp.keyWindow?.selectNextTab(nil)
                 }
@@ -115,6 +122,13 @@ struct QLQuickCSVApp: App {
         }
         .defaultSize(width: 580, height: 780)
         .windowResizability(.contentSize)
+
+        // Open Files Navigator window
+        Window("Open Files", id: "openFiles") {
+            OpenFilesNavigatorView()
+        }
+        .defaultSize(width: 450, height: 500)
+        .windowResizability(.contentMinSize)
     }
 
     private func selectTab(at index: Int) {

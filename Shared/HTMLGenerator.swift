@@ -61,7 +61,7 @@ enum HTMLGenerator {
         <body class="\(isDarkMode ? "dark" : "light")">
             <div class="container">
         \(generateHeader(fileName: fileName, filePath: filePath, data: data, fileSize: fileSize, modificationDate: modificationDate, githubURL: githubURL, hasMoreRows: hasMoreRows, maxDisplayRows: maxDisplayRows))
-        \(generateToolbar())
+        \(generateToolbar(hasHeaders: data.hasHeaders))
         \(generateStatsPanel(stats: stats, data: data))
         \(generateTableView(data: data, displayRows: displayRows, stats: stats))
         \(generateMarkdownView(data: data, displayRows: displayRows))
@@ -73,7 +73,7 @@ enum HTMLGenerator {
         \(generateMarkdownRenderer())
             </script>
             <script>
-        \(generateJavaScript(data: data, stats: stats))
+        \(generateJavaScript(data: data, displayRows: displayRows, stats: stats))
             </script>
         </body>
         </html>
@@ -159,6 +159,7 @@ enum HTMLGenerator {
         let linkColor: String
         let buttonBackground: String
         let buttonHover: String
+        let accent: String
     }
 
     private static let lightTheme = Theme(
@@ -173,7 +174,8 @@ enum HTMLGenerator {
         selectedColumn: "#e7f1ff",
         linkColor: "#0d6efd",
         buttonBackground: "#e9ecef",
-        buttonHover: "#dee2e6"
+        buttonHover: "#dee2e6",
+        accent: "#0d6efd"
     )
 
     private static let darkTheme = Theme(
@@ -188,7 +190,8 @@ enum HTMLGenerator {
         selectedColumn: "#1e3a5f",
         linkColor: "#6ea8fe",
         buttonBackground: "#495057",
-        buttonHover: "#5c636a"
+        buttonHover: "#5c636a",
+        accent: "#6ea8fe"
     )
 
     // MARK: - CSS Generation
@@ -317,6 +320,29 @@ enum HTMLGenerator {
             display: flex;
             align-items: center;
             gap: 12px;
+        }
+
+        .header-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: \(theme.secondaryText);
+            cursor: pointer;
+            padding: 6px 10px;
+            background: \(theme.background);
+            border: 1px solid \(theme.border);
+            border-radius: 6px;
+            user-select: none;
+        }
+
+        .header-toggle:hover {
+            border-color: \(theme.accent);
+        }
+
+        .header-toggle input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
         }
 
         .search-box {
@@ -896,7 +922,8 @@ enum HTMLGenerator {
 
     // MARK: - Toolbar
 
-    private static func generateToolbar() -> String {
+    private static func generateToolbar(hasHeaders: Bool) -> String {
+        let checkedAttr = hasHeaders ? "checked" : ""
         return """
         <div class="toolbar">
             <div class="toolbar-left">
@@ -906,6 +933,10 @@ enum HTMLGenerator {
                     <button class="btn" data-view="json" onclick="switchView('json')">JSON</button>
                     <button class="btn" data-view="txt" onclick="switchView('txt')">TXT</button>
                 </div>
+                <label class="header-toggle" title="Use first row as column headers">
+                    <input type="checkbox" id="headerToggle" \(checkedAttr) onchange="toggleHeaderRow(this.checked)">
+                    <span>First row is headers</span>
+                </label>
             </div>
             <div class="toolbar-right">
                 <div class="search-box">
@@ -1111,14 +1142,22 @@ enum HTMLGenerator {
 
     // MARK: - JavaScript
 
-    private static func generateJavaScript(data: CSVData, stats: [String: ColumnStats]) -> String {
+    private static func generateJavaScript(data: CSVData, displayRows: [[String]], stats: [String: ColumnStats]) -> String {
         // Serialize stats to JSON for JavaScript
         let statsJSON = serializeStats(stats, headers: data.headers)
+
+        // Serialize all rows for header toggle functionality
+        let allRowsJSON = serializeRows(displayRows)
+        let originalHeadersJSON = serializeArray(data.headers)
+        let hadHeadersInitially = data.hasHeaders
 
         return """
         // Data and state
         const columnStats = \(statsJSON);
-        const headers = \(serializeArray(data.headers));
+        let headers = \(serializeArray(data.headers));
+        const originalHeaders = \(originalHeadersJSON);
+        const allDataRows = \(allRowsJSON);
+        let hasHeaders = \(hadHeadersInitially ? "true" : "false");
         let selectedColumn = -1;
         let sortColumn = -1;
         let sortDirection = 'none';
@@ -1131,6 +1170,112 @@ enum HTMLGenerator {
 
             document.getElementById(view + 'View').classList.add('active');
             document.querySelector('.btn[data-view="' + view + '"]').classList.add('active');
+        }
+
+        // Toggle first row as headers
+        function toggleHeaderRow(useFirstRowAsHeaders) {
+            hasHeaders = useFirstRowAsHeaders;
+
+            let currentHeaders, currentRows;
+
+            if (useFirstRowAsHeaders) {
+                currentHeaders = originalHeaders;
+                currentRows = allDataRows;
+            } else {
+                // Generate Column 1, Column 2, etc. headers
+                const colCount = originalHeaders.length;
+                currentHeaders = [];
+                for (let i = 1; i <= colCount; i++) {
+                    currentHeaders.push('Column ' + i);
+                }
+                // Include the original headers as the first data row
+                currentRows = [originalHeaders].concat(allDataRows);
+            }
+
+            headers = currentHeaders;
+
+            // Update table headers using DOM methods
+            const thead = document.querySelector('#tableView thead tr');
+            if (thead) {
+                thead.replaceChildren();
+                currentHeaders.forEach((h, i) => {
+                    const th = document.createElement('th');
+                    th.dataset.col = i;
+                    th.onclick = () => selectColumn(i);
+                    th.textContent = h;
+                    thead.appendChild(th);
+                });
+            }
+
+            // Update table body using DOM methods
+            const tbody = document.querySelector('#tableView tbody');
+            if (tbody) {
+                tbody.replaceChildren();
+                currentRows.forEach((row, ri) => {
+                    const tr = document.createElement('tr');
+                    currentHeaders.forEach((_, ci) => {
+                        const td = document.createElement('td');
+                        td.dataset.col = ci;
+                        td.textContent = row[ci] || '';
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Update JSON view
+            const jsonView = document.getElementById('jsonContent');
+            if (jsonView) {
+                const jsonData = currentRows.map(row => {
+                    const obj = {};
+                    currentHeaders.forEach((h, i) => {
+                        obj[h] = row[i] || '';
+                    });
+                    return obj;
+                });
+                jsonView.textContent = JSON.stringify(jsonData, null, 2);
+            }
+
+            // Update markdown view
+            updateMarkdownView(currentHeaders, currentRows);
+
+            // Update stats dropdown using DOM methods
+            const statsSelect = document.getElementById('statsColumnSelect');
+            if (statsSelect) {
+                statsSelect.replaceChildren();
+                const defaultOpt = document.createElement('option');
+                defaultOpt.value = '';
+                defaultOpt.textContent = 'Select a column...';
+                statsSelect.appendChild(defaultOpt);
+                currentHeaders.forEach((h, i) => {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = h;
+                    statsSelect.appendChild(opt);
+                });
+            }
+        }
+
+        function updateMarkdownView(hdrs, rows) {
+            const mdContainer = document.getElementById('markdownRendered');
+            const mdSource = document.getElementById('markdownSource');
+            if (!mdContainer || !mdSource) return;
+
+            // Build markdown table
+            let md = '| ' + hdrs.join(' | ') + ' |\\n';
+            md += '| ' + hdrs.map(() => '---').join(' | ') + ' |\\n';
+            rows.slice(0, 500).forEach(row => {
+                md += '| ' + hdrs.map((_, i) => row[i] || '').join(' | ') + ' |\\n';
+            });
+
+            mdSource.textContent = md;
+            if (typeof marked !== 'undefined') {
+                mdContainer.replaceChildren();
+                const div = document.createElement('div');
+                // Use marked's safe parsing
+                div.innerHTML = marked.parse(md, { sanitize: false, headerIds: false });
+                mdContainer.appendChild(div);
+            }
         }
 
         // Column selection
@@ -1631,6 +1776,14 @@ enum HTMLGenerator {
 
     private static func serializeArray(_ array: [String]) -> String {
         guard let data = try? JSONSerialization.data(withJSONObject: array),
+              let json = String(data: data, encoding: .utf8) else {
+            return "[]"
+        }
+        return json
+    }
+
+    private static func serializeRows(_ rows: [[String]]) -> String {
+        guard let data = try? JSONSerialization.data(withJSONObject: rows),
               let json = String(data: data, encoding: .utf8) else {
             return "[]"
         }

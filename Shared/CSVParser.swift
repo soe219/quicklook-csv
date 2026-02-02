@@ -195,20 +195,52 @@ enum CSVParser {
         // Check if first row values look like header names:
         // 1. All non-empty
         // 2. No pure numbers
-        // 3. Relatively short
-        // 4. Different pattern from subsequent rows
+        // 3. Relatively short (header names are typically concise)
+        // 4. Values look like identifiers (contain underscores, common header patterns)
 
         let allNonEmpty = firstRow.allSatisfy { !$0.isEmpty }
         let noPureNumbers = firstRow.allSatisfy { Double($0) == nil }
         let reasonablyShort = firstRow.allSatisfy { $0.count < 100 }
 
-        // Check if data rows have different characteristics (e.g., more numbers)
+        // Check for common header patterns
+        let hasHeaderPatterns = firstRow.contains { value in
+            let lower = value.lowercased()
+            return value.contains("_") ||
+                   lower.contains("id") ||
+                   lower.contains("name") ||
+                   lower.contains("type") ||
+                   lower.contains("date") ||
+                   lower.contains("time") ||
+                   lower.contains("file") ||
+                   lower.contains("index") ||
+                   lower.contains("column") ||
+                   lower.contains("value") ||
+                   lower.contains("status") ||
+                   lower.contains("count") ||
+                   lower.contains("source") ||
+                   lower.contains("path")
+        }
+
+        // Check if first row values are unique (headers usually are)
+        let uniqueValues = Set(firstRow.map { $0.lowercased() })
+        let mostlyUnique = uniqueValues.count > firstRow.count / 2
+
+        // Check if data rows have different characteristics (e.g., more numbers, longer values)
         let dataRows = Array(rows.dropFirst().prefix(5))
         let dataHasNumbers = dataRows.contains { row in
             row.contains { Double($0) != nil }
         }
 
-        return allNonEmpty && noPureNumbers && reasonablyShort && (dataHasNumbers || rows.count <= 1)
+        // Calculate average length of first row vs data rows
+        let firstRowAvgLength = firstRow.map { $0.count }.reduce(0, +) / max(1, firstRow.count)
+        let dataAvgLength = dataRows.flatMap { $0 }.map { $0.count }.reduce(0, +) / max(1, dataRows.flatMap { $0 }.count)
+        let firstRowShorter = firstRowAvgLength <= dataAvgLength + 10
+
+        // More lenient detection: if first row looks like headers, use it
+        let looksLikeHeaders = allNonEmpty && noPureNumbers && reasonablyShort &&
+            (hasHeaderPatterns || mostlyUnique || dataHasNumbers || firstRowShorter)
+
+        return looksLikeHeaders
     }
 
     /// Parse content into rows using RFC 4180 rules
@@ -358,6 +390,7 @@ extension CSVData {
     }
 
     /// Format as JSON array of objects
+    /// Properly escapes special characters while avoiding unnecessary escaping (like forward slashes)
     func toJSON(maxRows: Int? = nil, prettyPrint: Bool = true) -> String {
         let displayRows = maxRows.map { Array(rows.prefix($0)) } ?? rows
 
@@ -370,9 +403,16 @@ extension CSVData {
             objects.append(obj)
         }
 
+        // Build options - avoid escaping forward slashes which is unnecessary
+        var options: JSONSerialization.WritingOptions = [.withoutEscapingSlashes]
+        if prettyPrint {
+            options.insert(.prettyPrinted)
+            options.insert(.sortedKeys)
+        }
+
         guard let data = try? JSONSerialization.data(
             withJSONObject: objects,
-            options: prettyPrint ? [.prettyPrinted, .sortedKeys] : []
+            options: options
         ),
               let json = String(data: data, encoding: .utf8) else {
             return "[]"

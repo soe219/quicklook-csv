@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLQuickCSV — Visual Showcase</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #7ee787;
+    --accent3: #d2a8ff;
+    --accent4: #ffa657;
+    --accent5: #ff7b72;
+    --gradient: linear-gradient(135deg, #58a6ff 0%, #7ee787 50%, #d2a8ff 100%);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── Section ── */
+  section { padding: 80px 0; }
+  .section-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .section-sub {
+    text-align: center;
+    color: var(--text-muted);
+    margin-bottom: 48px;
+    font-size: 1.05rem;
+  }
+
+  /* ── Card base ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent);
+    box-shadow: 0 8px 24px rgba(88, 166, 255, 0.08);
+  }
+
+  /* ── Hero ── */
+  .hero {
+    text-align: center;
+    padding: 120px 0 80px;
+  }
+  .hero-title {
+    font-size: 4rem;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 16px;
+  }
+  .hero-tagline {
+    font-size: 1.35rem;
+    color: var(--text-muted);
+    max-width: 560px;
+    margin: 0 auto 48px;
+  }
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* ── Two Faces ── */
+  .faces-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .face-card { position: relative; overflow: hidden; }
+  .face-card .face-icon {
+    font-size: 2rem;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .face-card h3 {
+    font-size: 1.25rem;
+    margin-bottom: 8px;
+  }
+  .face-card h3 .badge {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-left: 8px;
+    vertical-align: middle;
+    font-weight: 600;
+  }
+  .face-card ul {
+    list-style: none;
+    margin-top: 12px;
+  }
+  .face-card ul li {
+    padding: 6px 0;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .face-card ul li:last-child { border-bottom: none; }
+  .face-card ul li::before {
+    content: '\2192';
+    margin-right: 8px;
+    color: var(--accent);
+  }
+  .badge-ext { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
+  .badge-app { background: rgba(126, 231, 135, 0.15); color: var(--accent2); }
+
+  /* ── Pipeline ── */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .pipe-step {
+    flex: 1;
+    min-width: 160px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 16px;
+    text-align: center;
+    transition: transform 0.25s ease, border-color 0.25s ease;
+    position: relative;
+  }
+  .pipe-step:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent);
+  }
+  .pipe-step .step-num {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .pipe-step h4 {
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+  .pipe-step p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .pipe-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    min-width: 40px;
+    font-size: 1.3rem;
+    color: var(--accent);
+    animation: pulse-arrow 2s ease-in-out infinite;
+  }
+  @keyframes pulse-arrow {
+    0%, 100% { opacity: 0.4; transform: translateX(0); }
+    50% { opacity: 1; transform: translateX(4px); }
+  }
+
+  /* ── Type Detection ── */
+  .types-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .type-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.25s ease, border-color 0.25s ease;
+  }
+  .type-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent);
+  }
+  .type-badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .type-int    { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
+  .type-dec    { background: rgba(126, 231, 135, 0.15); color: var(--accent2); }
+  .type-date   { background: rgba(210, 168, 255, 0.15); color: var(--accent3); }
+  .type-bool   { background: rgba(255, 166, 87, 0.15); color: var(--accent4); }
+  .type-text   { background: rgba(139, 148, 158, 0.2); color: var(--text-muted); }
+  .type-mixed  { background: rgba(255, 123, 114, 0.15); color: var(--accent5); }
+  .type-card .type-example {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .type-note {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px 20px;
+    border-left: 3px solid var(--accent5);
+    background: rgba(255, 123, 114, 0.04);
+    border-radius: 0 8px 8px 0;
+  }
+
+  /* ── Features ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .feat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 18px;
+    transition: transform 0.25s ease, border-color 0.25s ease;
+  }
+  .feat-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent2);
+  }
+  .feat-card .feat-icon {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .feat-card h4 {
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+  }
+  .feat-card p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* ── Architecture ── */
+  .arch-layers {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .arch-layer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    transition: transform 0.25s ease, border-color 0.25s ease;
+  }
+  .arch-layer:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent3);
+  }
+  .arch-layer .layer-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    white-space: nowrap;
+    min-width: 90px;
+  }
+  .layer-ext .layer-label { color: var(--accent); }
+  .layer-app .layer-label { color: var(--accent2); }
+  .layer-shared .layer-label { color: var(--accent3); }
+  .arch-layer .layer-desc {
+    font-size: 0.92rem;
+    color: var(--text-muted);
+    flex: 1;
+  }
+  .arch-layer .layer-lines {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    color: var(--text);
+    background: var(--surface2);
+    padding: 4px 12px;
+    border-radius: 6px;
+  }
+  .arch-connector {
+    text-align: center;
+    color: var(--border);
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+
+  /* ── Tech Stack ── */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .tech-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 20px;
+    transition: transform 0.25s ease, border-color 0.25s ease;
+  }
+  .tech-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent4);
+  }
+  .tech-card h4 {
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+  }
+  .tech-card p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .tech-tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: var(--surface2);
+    color: var(--text-muted);
+  }
+
+  /* ── Timeline ── */
+  .timeline {
+    position: relative;
+    max-width: 640px;
+    margin: 0 auto;
+    padding-left: 32px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .tl-entry {
+    position: relative;
+    margin-bottom: 36px;
+  }
+  .tl-entry:last-child { margin-bottom: 0; }
+  .tl-entry::before {
+    content: '';
+    position: absolute;
+    left: -29px;
+    top: 6px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+  }
+  .tl-entry:nth-child(2)::before { background: var(--accent2); }
+  .tl-entry:nth-child(3)::before { background: var(--accent3); }
+  .tl-date {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .tl-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .tl-desc {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 48px 0 64px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .footer span {
+    margin: 0 8px;
+    opacity: 0.4;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .hero-title { font-size: 2.6rem; }
+    .stats-row { gap: 24px; }
+    .faces-grid { grid-template-columns: 1fr; }
+    .pipeline { flex-direction: column; align-items: center; }
+    .pipe-arrow { transform: rotate(90deg); width: auto; min-width: auto; height: 32px; }
+    .types-grid { grid-template-columns: repeat(2, 1fr); }
+    .tech-grid { grid-template-columns: 1fr 1fr; }
+    .features-grid { grid-template-columns: 1fr 1fr; }
+    .arch-layer { flex-direction: column; text-align: center; gap: 8px; }
+  }
+  @media (max-width: 480px) {
+    .types-grid { grid-template-columns: 1fr; }
+    .tech-grid { grid-template-columns: 1fr; }
+    .features-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section class="hero">
+  <div class="container">
+    <h1 class="hero-title">QLQuickCSV</h1>
+    <p class="hero-tagline">A macOS Quick Look extension that turns raw CSV files into rich, interactive data tables.</p>
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-value">5,455</div>
+        <div class="stat-label">Lines of Swift</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">11</div>
+        <div class="stat-label">Commits</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">4</div>
+        <div class="stat-label">View Modes</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">4</div>
+        <div class="stat-label">Themes</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">RFC 4180</div>
+        <div class="stat-label">Compliant</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ TWO FACES ═══════════════ -->
+<section>
+  <div class="container">
+    <h2 class="section-title">Two Faces of QLQuickCSV</h2>
+    <p class="section-sub">A Quick Look extension and a standalone app, sharing one parsing engine.</p>
+    <div class="faces-grid">
+      <div class="card face-card">
+        <span class="face-icon">&#9781;</span>
+        <h3>Extension <span class="badge badge-ext">Quick Look</span></h3>
+        <p style="color:var(--text-muted); font-size:0.92rem;">Press Space on any CSV in Finder and get an instant interactive data table.</p>
+        <ul>
+          <li>Interactive data table with sticky headers</li>
+          <li>Type badges on every column header</li>
+          <li>Click-to-sort on any column</li>
+          <li>Statistics panel with min/max/mean</li>
+          <li>Zero launch time &mdash; native QLPreviewReply</li>
+        </ul>
+      </div>
+      <div class="card face-card">
+        <span class="face-icon">&#9879;</span>
+        <h3>App <span class="badge badge-app">Host App</span></h3>
+        <p style="color:var(--text-muted); font-size:0.92rem;">A full file navigator for power users who live in CSV data all day.</p>
+        <ul>
+          <li>Sidebar file navigator with recent files</li>
+          <li>Session persistence across launches</li>
+          <li>Tabbed windows for comparing datasets</li>
+          <li>Drag-and-drop file opening</li>
+          <li>Settings sync with the extension via CFPreferences</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PIPELINE ═══════════════ -->
+<section>
+  <div class="container">
+    <h2 class="section-title">The Pipeline</h2>
+    <p class="section-sub">Five stages from raw bytes to a rendered data table.</p>
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="step-num">Step 1</div>
+        <h4>Read File</h4>
+        <p>Detect encoding from UTF-8, UTF-16LE, UTF-16BE, and ASCII. Handle BOM markers.</p>
+      </div>
+      <div class="pipe-arrow">&rarr;</div>
+      <div class="pipe-step">
+        <div class="step-num">Step 2</div>
+        <h4>Detect Delimiter</h4>
+        <p>Score candidates (comma, tab, semicolon, pipe) by column-count consistency.</p>
+      </div>
+      <div class="pipe-arrow">&rarr;</div>
+      <div class="pipe-step">
+        <div class="step-num">Step 3</div>
+        <h4>Parse CSV</h4>
+        <p>RFC 4180 state machine handles quoted fields, escaped quotes, and newlines in values.</p>
+      </div>
+      <div class="pipe-arrow">&rarr;</div>
+      <div class="pipe-step">
+        <div class="step-num">Step 4</div>
+        <h4>Analyze Types</h4>
+        <p>Sample rows to classify each column as INT, DECIMAL, DATE, BOOL, TEXT, or MIXED.</p>
+      </div>
+      <div class="pipe-arrow">&rarr;</div>
+      <div class="pipe-step">
+        <div class="step-num">Step 5</div>
+        <h4>Generate HTML</h4>
+        <p>Emit a self-contained HTML document with inline CSS, sorting JS, and statistics.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ TYPE DETECTION ═══════════════ -->
+<section>
+  <div class="container">
+    <h2 class="section-title">Type Detection</h2>
+    <p class="section-sub">Every column is classified automatically so you can spot data quality at a glance.</p>
+    <div class="types-grid">
+      <div class="type-card">
+        <span class="type-badge type-int">INT</span>
+        <h4>Integer</h4>
+        <div class="type-example">42, -7, 1000000</div>
+      </div>
+      <div class="type-card">
+        <span class="type-badge type-dec">DECIMAL</span>
+        <h4>Decimal</h4>
+        <div class="type-example">3.14, -0.5, 99.99</div>
+      </div>
+      <div class="type-card">
+        <span class="type-badge type-date">DATE</span>
+        <h4>Date</h4>
+        <div class="type-example">2026-03-01, 01/15/24</div>
+      </div>
+      <div class="type-card">
+        <span class="type-badge type-bool">BOOL</span>
+        <h4>Boolean</h4>
+        <div class="type-example">true, false, yes, no</div>
+      </div>
+      <div class="type-card">
+        <span class="type-badge type-text">TEXT</span>
+        <h4>Text</h4>
+        <div class="type-example">"hello world"</div>
+      </div>
+      <div class="type-card">
+        <span class="type-badge type-mixed">MIXED</span>
+        <h4>Mixed</h4>
+        <div class="type-example">42, hello, true</div>
+      </div>
+    </div>
+    <div class="type-note">
+      A <strong style="color:var(--accent5)">MIXED</strong> badge signals a data quality issue &mdash; the column contains values of incompatible types, which often indicates malformed data, missing values, or inconsistent entry.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ FEATURES ═══════════════ -->
+<section>
+  <div class="container">
+    <h2 class="section-title">Features</h2>
+    <p class="section-sub">Ten capabilities packed into one lightweight extension.</p>
+    <div class="features-grid">
+      <div class="feat-card">
+        <span class="feat-icon">&#9638;</span>
+        <h4>Sticky Headers</h4>
+        <p>Column headers stay pinned at the top as you scroll through thousands of rows.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#9998;</span>
+        <h4>Auto-Detect Delimiter</h4>
+        <p>Scores comma, tab, semicolon, and pipe to pick the best column separator.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#9733;</span>
+        <h4>Type Badges</h4>
+        <p>Color-coded badges on every column header reveal the detected data type.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#8693;</span>
+        <h4>Column Sorting</h4>
+        <p>Click any header to sort ascending or descending. Type-aware comparisons.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#931;</span>
+        <h4>Statistics Panel</h4>
+        <p>Toggle a panel showing min, max, mean, median, and null count per column.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#9881;</span>
+        <h4>Filter by Value</h4>
+        <p>Click any cell value to instantly filter the table to matching rows.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#9635;</span>
+        <h4>4 View Modes</h4>
+        <p>Table, compact, card, and raw views to suit different inspection needs.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#9000;</span>
+        <h4>Multi-Encoding</h4>
+        <p>Handles UTF-8, UTF-16LE, UTF-16BE, and ASCII with BOM detection.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#9776;</span>
+        <h4>Header Auto-Detection</h4>
+        <p>Heuristically determines whether the first row is a header or data.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#9889;</span>
+        <h4>Large File Handling</h4>
+        <p>Streams and samples large files so previews stay fast even at 100K+ rows.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ ARCHITECTURE ═══════════════ -->
+<section>
+  <div class="container">
+    <h2 class="section-title">Architecture</h2>
+    <p class="section-sub">Three layers, cleanly separated by responsibility.</p>
+    <div class="arch-layers">
+      <div class="arch-layer layer-ext">
+        <div class="layer-label">Extension</div>
+        <div class="layer-desc">Thin Quick Look entry point. Receives file URL, calls shared engine, returns <code style="color:var(--accent)">QLPreviewReply</code>.</div>
+        <div class="layer-lines">99 lines</div>
+      </div>
+      <div class="arch-connector">&#9474;</div>
+      <div class="arch-layer layer-app">
+        <div class="layer-label">Host App</div>
+        <div class="layer-desc">SwiftUI file navigator with sidebar, tabs, session persistence, drag-and-drop, and settings UI.</div>
+        <div class="layer-lines">~1,200 lines</div>
+      </div>
+      <div class="arch-connector">&#9474;</div>
+      <div class="arch-layer layer-shared">
+        <div class="layer-label">Shared Engine</div>
+        <div class="layer-desc">
+          CSVParser <span style="color:var(--text-muted)">(453 ln)</span> &middot;
+          CSVAnalyzer <span style="color:var(--text-muted)">(374 ln)</span> &middot;
+          HTMLGenerator <span style="color:var(--text-muted)">(1,817 ln)</span> &middot;
+          Settings &middot; GitHelper
+        </div>
+        <div class="layer-lines">~2,644+ lines</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ TECH STACK ═══════════════ -->
+<section>
+  <div class="container">
+    <h2 class="section-title">Tech Stack</h2>
+    <p class="section-sub">A focused set of tools, chosen for reliability over novelty.</p>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <span class="tech-tag">Language + UI</span>
+        <h4>Swift + SwiftUI</h4>
+        <p>Modern declarative UI for the host app. Swift concurrency for file I/O.</p>
+      </div>
+      <div class="tech-card">
+        <span class="tech-tag">Build</span>
+        <h4>XcodeGen</h4>
+        <p>YAML-based project generation. No merge conflicts on <code>.xcodeproj</code> files.</p>
+      </div>
+      <div class="tech-card">
+        <span class="tech-tag">Rendering</span>
+        <h4>highlight.js</h4>
+        <p>Syntax highlighting in the raw-view mode for embedded code snippets.</p>
+      </div>
+      <div class="tech-card">
+        <span class="tech-tag">Settings</span>
+        <h4>CFPreferences</h4>
+        <p>Shared preferences between extension and host app via app-group suite.</p>
+      </div>
+      <div class="tech-card">
+        <span class="tech-tag">Git</span>
+        <h4>Direct .git/ Reading</h4>
+        <p>Reads branch, commit hash, and dirty state directly from <code>.git/</code> files. No libgit2 dependency.</p>
+      </div>
+      <div class="tech-card">
+        <span class="tech-tag">Quick Look</span>
+        <h4>QLPreviewReply</h4>
+        <p>Returns self-contained HTML data via the Quick Look extension API. No WKWebView.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ TIMELINE ═══════════════ -->
+<section>
+  <div class="container">
+    <h2 class="section-title">Timeline</h2>
+    <p class="section-sub">From first commit to polished release in one month.</p>
+    <div class="timeline">
+      <div class="tl-entry">
+        <div class="tl-date">February 2026</div>
+        <div class="tl-title">v1.0 &mdash; Initial Release</div>
+        <div class="tl-desc">Core parsing engine, Quick Look extension, type detection, four themes, and RFC 4180 compliance. The extension works end-to-end from Finder.</div>
+      </div>
+      <div class="tl-entry">
+        <div class="tl-date">February 2026</div>
+        <div class="tl-title">v1.1 &mdash; File Navigator</div>
+        <div class="tl-desc">Host app gains a full sidebar navigator, session persistence, tabbed windows, and drag-and-drop. Settings sync with the extension via CFPreferences.</div>
+      </div>
+      <div class="tl-entry">
+        <div class="tl-date">February 2026</div>
+        <div class="tl-title">v1.2&ndash;1.3 &mdash; Polish</div>
+        <div class="tl-desc">Filter-by-value, header auto-detection, large file streaming, multi-encoding support, and DMG packaging for distribution.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer class="footer">
+  <div class="container">
+    11 commits <span>&middot;</span>
+    5,455 lines of Swift <span>&middot;</span>
+    RFC 4180 compliant <span>&middot;</span>
+    4 view modes
+  </div>
+</footer>
+
+</body>
+</html>
